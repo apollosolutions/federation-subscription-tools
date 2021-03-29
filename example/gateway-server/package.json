@@ -1,0 +1,28 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "A demonstration federated data graph where the subgraphs publish subscription events to Redis pub/sub.",
+  "main": "src/index.js",
+  "scripts": {
+    "server": "concurrently -k npm:server:*",
+    "server:authors": "nodemon -r esm -r dotenv/config ./src/services/authors/index.js",
+    "server:posts": "nodemon -r esm -r dotenv/config ./src/services/posts/index.js",
+    "server:gateway": "wait-on tcp:4001 tcp:4002 && nodemon -r esm -r dotenv/config ./src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/federation": "^0.22.0",
+    "@apollo/gateway": "^0.25.0",
+    "apollo-server": "^2.19.2",
+    "concurrently": "^5.3.0",
+    "dotenv": "^8.2.0",
+    "esm": "^3.2.25",
+    "graphql": "^15.5.0",
+    "graphql-redis-subscriptions": "^2.3.1",
+    "ioredis": "^4.19.4",
+    "nodemon": "^2.0.7",
+    "wait-on": "^5.2.1"
+  }
+}

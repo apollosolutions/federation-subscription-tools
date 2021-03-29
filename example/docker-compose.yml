@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:5.0.9-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+  gateway_server:
+    container_name: gateway_server
+    restart: always
+    build:
+      context: ./gateway-server
+    ports:
+      - 4000:4000
+      - 4001:4001
+      - 4002:4002
+    volumes:
+      - ./gateway-server:/home/node/app
+      - /home/node/app/node_modules
+    depends_on:
+      - redis
+    env_file:
+      - ./gateway-server/.env
+    command: npm run server
+  subscriptions_server:
+    container_name: subscriptions_server
+    restart: always
+    build:
+      context: ../
+      dockerfile: example/subscriptions-server/Dockerfile
+    ports:
+      - 5000:5000
+    volumes:
+      - ../example/subscriptions-server:/home/node/app
+      - ../:/home/node/federation-subscription-tools
+      - /home/node/app/node_modules
+      - /home/node/federation-subscription-tools/node_modules
+    depends_on:
+      - gateway_server
+      - redis
+    env_file:
+      - ./subscriptions-server/.env
+    command: npm run server
+  react_app:
+    container_name: react_app
+    restart: always
+    build:
+      context: ./react-app
+    volumes:
+      - ./react-app:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - ./react-app/.env
+    ports:
+      - 3000:3000
+    stdin_open: true
+    command: npm start

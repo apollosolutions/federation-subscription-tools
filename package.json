@@ -1,0 +1,18 @@
+{
+  "name": "federation-subscription-tools",
+  "version": "0.1.0",
+  "description": "A set of demonstration utilities to facilitate GraphQL subscription usage alongside a federated data graph.",
+  "main": "src/index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/client": "^3.3.12",
+    "apollo-datasource": "^0.7.3",
+    "apollo-server": "^2.21.1",
+    "graphql": "^15.5.0",
+    "graphql-parse-resolve-info": "^4.11.0",
+    "lodash": "^4.17.21",
+    "node-fetch": "^2.6.1"
+  }
+}

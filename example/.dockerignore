@@ -1,0 +1,14 @@
+.vscode
+
+.dockerignore
+docker-compose*
+**/Dockerfile*
+
+**/npm-debug.log*
+**/node_modules/
+
+.git
+.gitingore
+
+LICENSE
+README.md
