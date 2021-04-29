@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+const { createHash } = require("crypto");
 
 const { gql, makeExecutableSchema } = require("apollo-server");
 const { printSchema } = require("graphql");
