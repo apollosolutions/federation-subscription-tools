@@ -250,6 +250,15 @@ Next, add `.env` files to the server and client directories:
 
 Finally, run `docker-compose up --build` from the `example` directory to start all services.
 
+TLDR;
+
+```bash
+cp example/gateway-server/.env.sample example/gateway-server/.env
+cp example/subscriptions-server/.env.sample example/subscriptions-server/.env
+cp example/client/.env.sample example/client/.env
+docker-compose up --build
+```
+
 The federated data graph endpoint may be accessed at [http://localhost:4000/graphql](http://localhost:4000/graphql).
 
 The subscriptions service WebSocket endpoint may be accessed at [ws://localhost:5000/graphql](ws://localhost:5000/graphql).
