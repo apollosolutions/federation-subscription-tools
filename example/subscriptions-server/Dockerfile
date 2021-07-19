@@ -10,20 +10,15 @@ RUN mkdir -p /home/node/app/node_modules \
 
 USER node
 
-WORKDIR /home/node/federation-subscription-tools
+COPY --chown=node:node ../../ /home/node/federation-subscription-tools
+COPY --chown=node:node . /home/node/app
 
-COPY package*.json ./
+WORKDIR /home/node/federation-subscription-tools
 
 RUN npm install -g graphql && npm install --no-optional && \
     npm cache clean --force && npm link && npm link graphql
 
-COPY --chown=node:node . .
-
 WORKDIR /home/node/app
-
-COPY example/subscriptions-server/package*.json ./
 
 RUN npm install --no-optional && npm cache clean --force && \
     npm link federation-subscription-tools && npm link graphql
-
-COPY --chown=node:node example/subscriptions-server .
