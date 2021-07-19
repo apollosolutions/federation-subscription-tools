@@ -4,7 +4,7 @@
   "description": "A demonstration subscriptions service for a federated data graph.",
   "main": "src/index.js",
   "scripts": {
-    "server": "nodemon -r esm -r dotenv/config ./src/index.js"
+    "server": "./node_modules/.bin/nodemon -r esm -r dotenv/config ./src/index.js"
   },
   "keywords": [],
   "author": "",
