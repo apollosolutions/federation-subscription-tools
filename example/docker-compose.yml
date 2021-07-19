@@ -28,8 +28,7 @@ services:
     container_name: subscriptions_server
     restart: always
     build:
-      context: ../
-      dockerfile: example/subscriptions-server/Dockerfile
+      context: ./subscriptions-server
     ports:
       - 5000:5000
     volumes:
