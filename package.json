@@ -1,6 +1,6 @@
 {
   "name": "federation-subscription-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A set of demonstration utilities to facilitate GraphQL subscription usage alongside a federated data graph.",
   "main": "src/index.js",
   "typings": "src/index.d.ts",
