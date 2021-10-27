@@ -1,4 +1,6 @@
-import http from "http";
+import express from 'express';
+import { ApolloServer } from "apollo-server-express";
+import { WebSocketServer } from "ws";
 
 import {
   addGatewayDataSourceToSubscriptionContext,
@@ -15,11 +17,12 @@ import {
   validate
 } from "graphql";
 import { useServer } from "graphql-ws/lib/use/ws";
-import ws from "ws";
 
 import { LiveBlogDataSource } from "./datasources/LiveBlogDataSource";
 import { resolvers } from "./resolvers";
 import { typeDefs } from "./typeDefs";
+
+const app = express();
 
 (async () => {
   const apolloKey = process.env.APOLLO_KEY;
@@ -67,73 +70,75 @@ import { typeDefs } from "./typeDefs";
   /**
    * Expose GraphQL endpoint via WebSockets (for subscription operations only)
    */
-  const httpServer = http.createServer(function weServeSocketsOnly(_, res) {
-    res.writeHead(404);
-    res.end();
+  const apolloServer = new ApolloServer({
+    schema,
   });
 
-  const wsServer = new ws.Server({
-    server: httpServer,
-    path: "/graphql"
-  });
+  apolloServer.applyMiddleware({ app });
 
-  useServer(
-    {
-      execute,
-      subscribe,
-      context: ctx => {
-        // If a token was sent for auth purposes, retrieve it here
-        const { token } = ctx.connectionParams;
+  const server = app.listen(port, () => {
+    // create and use the websocket server
+    const wsServer = new WebSocketServer({
+      server,
+      path: "/graphql",
+    });
 
-        // Instantiate and initialize the GatewayDataSource subclass
-        // (data source methods will be accessible on the `gatewayApi` key)
-        const liveBlogDataSource = new LiveBlogDataSource(gatewayEndpoint);
-        const dataSourceContext = addGatewayDataSourceToSubscriptionContext(
-          ctx,
-          liveBlogDataSource
-        );
-
-        // Return the complete context for the request
-        return { token: token || null, ...dataSourceContext };
+    useServer(
+      {
+        execute,
+        subscribe,
+        context: ctx => {
+          // If a token was sent for auth purposes, retrieve it here
+          const { token } = ctx.connectionParams;
+  
+          // Instantiate and initialize the GatewayDataSource subclass
+          // (data source methods will be accessible on the `gatewayApi` key)
+          const liveBlogDataSource = new LiveBlogDataSource(gatewayEndpoint);
+          const dataSourceContext = addGatewayDataSourceToSubscriptionContext(
+            ctx,
+            liveBlogDataSource
+          );
+  
+          // Return the complete context for the request
+          return { token: token || null, ...dataSourceContext };
+        },
+        onSubscribe: (_ctx, msg) => {
+          // Construct the execution arguments
+          const args = {
+            schema,
+            operationName: msg.payload.operationName,
+            document: parse(msg.payload.query),
+            variableValues: msg.payload.variables
+          };
+  
+          const operationAST = getOperationAST(args.document, args.operationName);
+  
+          // Stops the subscription and sends an error message
+          if (!operationAST) {
+            return [new GraphQLError("Unable to identify operation")];
+          }
+  
+          // Handle mutation and query requests
+          if (operationAST.operation !== "subscription") {
+            return [
+              new GraphQLError("Only subscription operations are supported")
+            ];
+          }
+  
+          // Validate the operation document
+          const errors = validate(args.schema, args.document);
+  
+          if (errors.length > 0) {
+            return errors;
+          }
+  
+          // Ready execution arguments
+          return args;
+        }
       },
-      onSubscribe: (_ctx, msg) => {
-        // Construct the execution arguments
-        const args = {
-          schema,
-          operationName: msg.payload.operationName,
-          document: parse(msg.payload.query),
-          variableValues: msg.payload.variables
-        };
+      wsServer
+    );  
 
-        const operationAST = getOperationAST(args.document, args.operationName);
-
-        // Stops the subscription and sends an error message
-        if (!operationAST) {
-          return [new GraphQLError("Unable to identify operation")];
-        }
-
-        // Handle mutation and query requests
-        if (operationAST.operation !== "subscription") {
-          return [
-            new GraphQLError("Only subscription operations are supported")
-          ];
-        }
-
-        // Validate the operation document
-        const errors = validate(args.schema, args.document);
-
-        if (errors.length > 0) {
-          return errors;
-        }
-
-        // Ready execution arguments
-        return args;
-      }
-    },
-    wsServer
-  );
-
-  httpServer.listen({ port }, () => {
     console.log(
       `🚀 Subscriptions ready at ws://localhost:${port}${wsServer.options.path}`
     );
