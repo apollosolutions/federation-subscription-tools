@@ -1,3 +1,4 @@
+const { ApolloError, AuthenticationError, ForbiddenError } = require("apollo-server");
 const {
   createHttpLink,
   execute,
