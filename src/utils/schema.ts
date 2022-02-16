@@ -1,9 +1,10 @@
 import { createHash } from "crypto";
 
-const { gql, makeExecutableSchema } = require("apollo-server");
-const { printSchema } = require("graphql");
+import { makeExecutableSchema } from "graphql-tools";
+import { gql } from 'graphql-tag';
+import { DocumentNode, printSchema } from "graphql";
 
-function getGatewayApolloConfig(key, graphVariant) {
+export function getGatewayApolloConfig(key: any, graphVariant: any) {
   return {
     key,
     graphId: key.split(":")[1],
@@ -12,7 +13,7 @@ function getGatewayApolloConfig(key, graphVariant) {
   };
 }
 
-function makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers }) {
+export function makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers }: any) {
   if (!typeDefs || !resolvers) {
     throw new Error(
       "Both `typeDefs` and `resolvers` are required to make the executable subscriptions schema."
@@ -24,12 +25,8 @@ function makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers }) {
     : undefined;
 
   return makeExecutableSchema({
-    typeDefs: [...(gatewayTypeDefs && [gatewayTypeDefs]), typeDefs],
+    typeDefs: [...(gatewayTypeDefs && [gatewayTypeDefs]) as DocumentNode[], typeDefs],
     resolvers
   });
 }
 
-module.exports = {
-  getGatewayApolloConfig,
-  makeSubscriptionSchema
-};

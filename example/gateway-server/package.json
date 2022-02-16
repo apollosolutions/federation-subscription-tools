@@ -24,5 +24,8 @@
     "ioredis": "^4.19.4",
     "nodemon": "^2.0.7",
     "wait-on": "^5.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.5"
   }
 }

@@ -1,25 +1,30 @@
-const {
+import {
   createHttpLink,
   execute,
   from,
   toPromise
-} = require("@apollo/client/core");
-const { DataSource } = require("apollo-datasource");
-const { onError } = require("@apollo/client/link/error");
-const { parseResolveInfo } = require("graphql-parse-resolve-info");
-const { setContext } = require("@apollo/client/link/context");
-const fetch = require("node-fetch");
-const merge = require("lodash/merge");
+} from "@apollo/client/core";
+import { DataSource } from "apollo-datasource";
+import { onError } from "@apollo/client/link/error";
+import { parseResolveInfo } from "graphql-parse-resolve-info";
+import { setContext } from "@apollo/client/link/context";
+import fetch from "node-fetch";
+import merge from "lodash/merge";
+import { ApolloError, AuthenticationError, ForbiddenError } from "apollo-server";
 
-class GatewayDataSource extends DataSource {
-  constructor(gatewayURL) {
+export class GatewayDataSource extends DataSource {
+
+  private gatewayURL;
+  // private context;
+
+  constructor(gatewayURL: string) {
     super();
     this.gatewayURL = gatewayURL;
   }
 
-  initialize(config) {
-    this.context = config.context;
-  }
+  // initialize(config: any) {
+  //   this.context = config.context;
+  // }
 
   // Creates an Apollo Client to query data from the gateway
 
@@ -29,11 +34,12 @@ class GatewayDataSource extends DataSource {
     return from([
       this.onErrorLink(),
       this.onRequestLink(),
+      /* @ts-ignore-next-line */
       createHttpLink({ fetch, uri })
     ]);
   }
 
-  didEncounterError(error) {
+  didEncounterError(error: any) {
     const status = error.statusCode ? error.statusCode : null;
     const message = error.bodyText ? error.bodyText : null;
     let apolloError;
@@ -55,7 +61,7 @@ class GatewayDataSource extends DataSource {
     throw apolloError;
   }
 
-  async query(query, options) {
+  async query(query: any, options: any) {
     const link = this.composeLinks();
 
     try {
@@ -80,7 +86,9 @@ class GatewayDataSource extends DataSource {
 
   onRequestLink() {
     return setContext(request => {
+      /* @ts-ignore-next-line */
       if (this.willSendRequest) {
+        /* @ts-ignore-next-line */
         this.willSendRequest(request);
       }
 
@@ -104,15 +112,15 @@ class GatewayDataSource extends DataSource {
 
   // Utils that support diffing payload fields with operation field selections
 
-  addDelimiter(a, b) {
+  addDelimiter(a: any, b: any) {
     return a ? `${a}.${b}` : b;
   }
 
-  isObject(val) {
+  isObject(val: any) {
     return typeof val === "object" && !Array.isArray(val) && val !== null;
   }
 
-  isFieldObject(obj) {
+  isFieldObject(obj: any) {
     return (
       this.isObject(obj) &&
       obj.hasOwnProperty("args") &&
@@ -121,11 +129,12 @@ class GatewayDataSource extends DataSource {
     );
   }
 
-  fieldPathsAsStrings(obj) {
+  fieldPathsAsStrings(obj: any) {
     const paths = (obj = {}, head = "") => {
       return Object.entries(obj).reduce((acc, [key, value]) => {
         let fullPath = this.addDelimiter(head, key);
         return this.isObject(value)
+          /* @ts-ignore-next-line */
           ? acc.concat(key, paths(value, fullPath))
           : acc.concat(fullPath);
       }, []);
@@ -133,9 +142,9 @@ class GatewayDataSource extends DataSource {
     return paths(obj);
   }
 
-  fieldPathsAsMapFromResolveInfo(resolveInfo) {
+  fieldPathsAsMapFromResolveInfo(resolveInfo: any) {
     // Construct entries-like array of field paths their corresponding name, alias, and args
-    const paths = (obj = {}, head = "") => {
+    const paths: any = (obj = {}, head = "") => {
       return Object.entries(obj).reduce((acc, [key, value]) => {
         let fullPath = this.addDelimiter(head, key);
         if (
@@ -228,7 +237,7 @@ class GatewayDataSource extends DataSource {
   buildNonPayloadSelections(payload, info) {
     const resolveInfo = parseResolveInfo(info);
     const payloadFieldPaths = this.fieldPathsAsStrings(
-      payload[resolveInfo.name]
+      payload[resolveInfo?.name as string]
     );
     const operationFields = this.fieldPathsAsMapFromResolveInfo(resolveInfo);
     const operationFieldPaths = Object.keys(operationFields);
@@ -284,7 +293,3 @@ class GatewayDataSource extends DataSource {
     return merge(payloadFieldData, nonPayloadFieldData);
   }
 }
-
-module.exports = {
-  GatewayDataSource
-};
