@@ -1,36 +1,40 @@
 import {
-  createHttpLink,
-  execute,
-  from,
-  toPromise
-} from "@apollo/client/core";
+  ApolloError,
+  AuthenticationError,
+  ForbiddenError
+} from "apollo-server";
+import { createHttpLink, execute, from, toPromise } from "@apollo/client/core";
 import { DataSource } from "apollo-datasource";
+import { DocumentNode } from "graphql";
+import { GraphQLOptions } from "apollo-server";
 import { onError } from "@apollo/client/link/error";
-import { parseResolveInfo } from "graphql-parse-resolve-info";
+import {
+  FieldsByTypeName,
+  parseResolveInfo,
+  ResolveTree
+} from "graphql-parse-resolve-info";
 import { setContext } from "@apollo/client/link/context";
 import fetch from "node-fetch";
 import merge from "lodash/merge";
-import { ApolloError, AuthenticationError, ForbiddenError } from "apollo-server";
-
+​
 export class GatewayDataSource extends DataSource {
-
   private gatewayURL;
   // private context;
-
+​
   constructor(gatewayURL: string) {
     super();
     this.gatewayURL = gatewayURL;
   }
-
+​
   // initialize(config: any) {
   //   this.context = config.context;
   // }
-
+​
   // Creates an Apollo Client to query data from the gateway
-
+​
   composeLinks() {
     const uri = this.resolveUri();
-
+​
     return from([
       this.onErrorLink(),
       this.onRequestLink(),
@@ -38,12 +42,12 @@ export class GatewayDataSource extends DataSource {
       createHttpLink({ fetch, uri })
     ]);
   }
-
+​
   didEncounterError(error: any) {
     const status = error.statusCode ? error.statusCode : null;
     const message = error.bodyText ? error.bodyText : null;
-    let apolloError;
-
+    let apolloError: ApolloError;
+​
     switch (status) {
       case 401:
         apolloError = new AuthenticationError(message);
@@ -57,13 +61,13 @@ export class GatewayDataSource extends DataSource {
       default:
         apolloError = new ApolloError(message, status);
     }
-
+​
     throw apolloError;
   }
-
-  async query(query: any, options: any) {
+​
+  async query(query: DocumentNode, options: GraphQLOptions) {
     const link = this.composeLinks();
-
+​
     try {
       const response = await toPromise(execute(link, { query, ...options }));
       return response;
@@ -71,31 +75,29 @@ export class GatewayDataSource extends DataSource {
       this.didEncounterError(error);
     }
   }
-
+​
   resolveUri() {
     const gatewayURL = this.gatewayURL;
-
+​
     if (!gatewayURL) {
       throw new ApolloError(
         "Cannot make request to GraphQL API, missing gatewayURL"
       );
     }
-
+​
     return gatewayURL;
   }
-
+​
   onRequestLink() {
     return setContext(request => {
-      /* @ts-ignore-next-line */
-      if (this.willSendRequest) {
-        /* @ts-ignore-next-line */
-        this.willSendRequest(request);
+      if (typeof (this as any).willSendRequest === "function") {
+        (this as any).willSendRequest(request);
       }
-
+​
       return request;
     });
   }
-
+​
   onErrorLink() {
     return onError(({ graphQLErrors, networkError }) => {
       if (graphQLErrors) {
@@ -103,23 +105,23 @@ export class GatewayDataSource extends DataSource {
           console.error(`[GraphQL error]: ${graphqlError.message}`)
         );
       }
-
+​
       if (networkError) {
         console.log(`[Network Error]: ${networkError}`);
       }
     });
   }
-
+​
   // Utils that support diffing payload fields with operation field selections
-
-  addDelimiter(a: any, b: any) {
+​
+  addDelimiter(a: string, b: string) {
     return a ? `${a}.${b}` : b;
   }
-
+​
   isObject(val: any) {
     return typeof val === "object" && !Array.isArray(val) && val !== null;
   }
-
+​
   isFieldObject(obj: any) {
     return (
       this.isObject(obj) &&
@@ -128,46 +130,51 @@ export class GatewayDataSource extends DataSource {
       obj.hasOwnProperty("name")
     );
   }
-
-  fieldPathsAsStrings(obj: any) {
-    const paths = (obj = {}, head = "") => {
-      return Object.entries(obj).reduce((acc, [key, value]) => {
-        let fullPath = this.addDelimiter(head, key);
-        return this.isObject(value)
-          /* @ts-ignore-next-line */
-          ? acc.concat(key, paths(value, fullPath))
-          : acc.concat(fullPath);
-      }, []);
+​
+  fieldPathsAsStrings(obj: { [key: string]: any }) {
+    const paths = (obj = {}, head = ""): string[] => {
+      return Object.entries(obj).reduce(
+        (acc: string[], [key, value]: [string, any]) => {
+          let fullPath = this.addDelimiter(head, key);
+          return this.isObject(value)
+            ? acc.concat(key, paths(value, fullPath))
+            : acc.concat(fullPath);
+        },
+        []
+      );
     };
     return paths(obj);
   }
-
-  fieldPathsAsMapFromResolveInfo(resolveInfo: any) {
+​
+  fieldPathsAsMapFromResolveInfo(resolveInfo: FieldsByTypeName | ResolveTree) {
     // Construct entries-like array of field paths their corresponding name, alias, and args
-    const paths: any = (obj = {}, head = "") => {
-      return Object.entries(obj).reduce((acc, [key, value]) => {
-        let fullPath = this.addDelimiter(head, key);
-        if (
-          this.isFieldObject(value) &&
-          Object.keys(value.fieldsByTypeName).length === 0
-        ) {
-          const { alias, args, name } = value;
-          return acc.concat([[fullPath, { alias, args, name }]]);
-        } else if (this.isFieldObject(value)) {
-          const { alias, args, name } = value;
-          return acc.concat(
-            [[fullPath, { alias, args, name }]],
-            paths(value, fullPath)
-          );
-        } else if (this.isObject(value)) {
-          return acc.concat(paths(value, fullPath));
-        }
-        return acc.concat([[fullPath, null]]);
-      }, []);
+    const paths = (obj = {}, head = ""): [string, any][] => {
+      return Object.entries(obj).reduce(
+        (acc: [string, any][], [key, value]: [string, any]) => {
+          let fullPath = this.addDelimiter(head, key);
+          if (
+            this.isFieldObject(value) &&
+            Object.keys(value.fieldsByTypeName).length === 0
+          ) {
+            const { alias, args, name } = value;
+            return acc.concat([[fullPath, { alias, args, name }]]);
+          } else if (this.isFieldObject(value)) {
+            const { alias, args, name } = value;
+            return acc.concat(
+              [[fullPath, { alias, args, name }]],
+              paths(value, fullPath)
+            );
+          } else if (this.isObject(value)) {
+            return acc.concat(paths(value, fullPath));
+          }
+          return acc.concat([[fullPath, null]]);
+        },
+        []
+      );
     };
-
+​
     const resolveInfoFields = paths(resolveInfo);
-
+​
     // Filter field paths and construct an object from entries
     return Object.fromEntries(
       resolveInfoFields
@@ -190,19 +197,19 @@ export class GatewayDataSource extends DataSource {
         })
     );
   }
-
+​
   buildSelection(selection, pathString, pathParts, fieldPathMap, index) {
     let formattedSelection = selection;
     let options;
     let parentOptions;
-
+​
     if (pathParts.length > 1 && index < pathParts.length - 1) {
       const parentPathString = pathParts.slice(0, index + 1).join(".");
       parentOptions = fieldPathMap[parentPathString];
     } else {
       options = fieldPathMap[pathString];
     }
-
+​
     if (parentOptions) {
       if (parentOptions.alias) {
         formattedSelection = `${parentOptions.alias}: ${formattedSelection}`;
@@ -225,10 +232,10 @@ export class GatewayDataSource extends DataSource {
         formattedSelection = `${formattedSelection}(${formattedArgs})`;
       }
     }
-
+​
     return formattedSelection;
   }
-
+​
   // This function checks the fields that were included in the payload against
   // the fields that were requested in the subscription operation from the
   // client and then builds up a string of field selections to fetch on the
@@ -239,15 +246,17 @@ export class GatewayDataSource extends DataSource {
     const payloadFieldPaths = this.fieldPathsAsStrings(
       payload[resolveInfo?.name as string]
     );
-    const operationFields = this.fieldPathsAsMapFromResolveInfo(resolveInfo);
+    const operationFields = resolveInfo
+      ? this.fieldPathsAsMapFromResolveInfo(resolveInfo)
+      : {};
     const operationFieldPaths = Object.keys(operationFields);
-
+​
     return operationFieldPaths
       .filter(path => !payloadFieldPaths.includes(path))
       .reduce((acc, curr, i, arr) => {
         const pathParts = curr.split(".");
         let selections = "";
-
+​
         pathParts.forEach((part, j) => {
           // Is this a top-level field that will be accounted for when nested
           // children are added to the selection?
@@ -257,11 +266,11 @@ export class GatewayDataSource extends DataSource {
             const rejoinedItem = itemParts.join(".");
             return rejoinedItem === curr;
           });
-
+​
           if (hasSubFields) {
             return;
           }
-
+​
           const sel = this.buildSelection(
             part,
             curr,
@@ -269,7 +278,7 @@ export class GatewayDataSource extends DataSource {
             operationFields,
             j
           );
-
+​
           if (j === 0) {
             selections = `${sel} `;
           } else if (j === 1) {
@@ -282,11 +291,11 @@ export class GatewayDataSource extends DataSource {
             )}{ ${sel} } ${selections.slice(char)}`;
           }
         });
-
+​
         return acc + selections;
       }, "");
   }
-
+​
   // Deep merges the values of payload fields with non-payload fields to
   // compose the overall response from the subscription field resolver
   mergeFieldData(payloadFieldData, nonPayloadFieldData) {
