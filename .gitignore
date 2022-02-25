@@ -4,6 +4,9 @@
 # dependencies
 node_modules
 
+# TypeScript
+*.tsbuildinfo
+
 # client
 client/build
 
