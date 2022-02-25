@@ -8,10 +8,6 @@ import {
 const isProd = process.env.NODE_ENV === "production";
 const apolloKey = process.env.APOLLO_KEY;
 
-if (!process.env.APOLLO_GRAPH_VARIANT) {
-  process.env.APOLLO_GRAPH_VARIANT = "current";
-}
-
 let gatewayOptions = {
   debug: isProd ? false : true
 };
