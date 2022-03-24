@@ -23,7 +23,7 @@ import { typeDefs } from "./typeDefs";
 
 (async () => {
   const apolloKey = process.env.APOLLO_KEY;
-  const graphVariant = process.env.APOLLO_GRAPH_VARIANT || "current";
+  const graphRef = process.env.APOLLO_GRAPH_REF;
   const gatewayEndpoint = process.env.GATEWAY_ENDPOINT;
   const isProd = process.env.NODE_ENV === "production";
   const port = process.env.SUBSCRIPTIONS_SERVICE_PORT;
@@ -47,12 +47,16 @@ import { typeDefs } from "./typeDefs";
 
   const gateway = new ApolloGateway(gatewayOptions);
 
-  gateway.onSchemaChange(gatewaySchema => {
-    schema = makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers });
+  gateway.onSchemaLoadOrUpdate(schemaContext => {
+    schema = makeSubscriptionSchema({
+      gatewaySchema: schemaContext.apiSchema,
+      typeDefs,
+      resolvers
+    });
   });
 
   if (apolloKey) {
-    apolloConfig = getGatewayApolloConfig(apolloKey, graphVariant);
+    apolloConfig = getGatewayApolloConfig(apolloKey, graphRef);
   } else {
     // For unmanaged federation, we must set a poll interval to query the
     // subgraph services for their schemas to detect a schema change. Polling

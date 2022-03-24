@@ -4,6 +4,12 @@
 # dependencies
 node_modules
 
+# output
+dist
+
+# TypeScript
+*.tsbuildinfo
+
 # client
 client/build
 
