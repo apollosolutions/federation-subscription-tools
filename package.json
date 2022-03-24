@@ -1,18 +1,30 @@
 {
   "name": "federation-subscription-tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A set of demonstration utilities to facilitate GraphQL subscription usage alongside a federated data graph.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/types.d.ts",
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "compile": "tsc --build tsconfig.json",
+    "compile:clean": "tsc --build tsconfig.json --clean",
+    "watch": "tsc --build tsconfig.json --watch"
+  },
   "dependencies": {
-    "@apollo/client": "^3.3.12",
+    "@apollo/client": "^3.5.8",
     "apollo-datasource": "^0.7.3",
-    "apollo-server": "^2.21.1",
+    "apollo-server": "^3.6.2",
     "graphql": "^15.5.0",
-    "graphql-parse-resolve-info": "^4.11.0",
+    "graphql-parse-resolve-info": "4.12.0",
+    "graphql-tools": "^8.2.0",
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.178",
+    "@types/node-fetch": "^2.6.1",
+    "typescript": "^4.5.5"
   }
 }

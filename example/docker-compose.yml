@@ -36,6 +36,7 @@ services:
       - ../example/subscriptions-server:/home/node/app
       - ../:/home/node/federation-subscription-tools
       - /home/node/app/node_modules
+      - /home/node/federation-subscription-tools/dist
       - /home/node/federation-subscription-tools/node_modules
     depends_on:
       - gateway_server
