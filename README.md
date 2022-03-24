@@ -241,11 +241,11 @@ httpServer.listen({ port }, () => {
 The full example code can be found in the `example` directory. To run the example, you'll need to create a new graph in Apollo Studio for the gateway, [configure rover](https://www.apollographql.com/docs/rover/configuring) with your `APOLLO_KEY`, and then push the two services' schemas:
 
 ```sh
-rover graph introspect http://localhost:4001 | rover subgraph publish my-graph@current --schema - --name authors
+rover subgraph introspect http://localhost:4001 | rover subgraph publish blog@current --schema - --name authors --routing-url http://localhost:4001
 ```
 
 ```sh
-rover graph introspect http://localhost:4002 | rover subgraph publish my-graph@current --schema - --name posts
+rover subgraph introspect http://localhost:4002 | rover subgraph publish blog@current --schema - --name posts --routing-url http://localhost:4002
 ```
 
 **Important!** The services for the authors and posts subgraphs will need to be running to fetch their schemas from the specified endpoints. You can quickly start up these services without the overhead of running a full `docker-compose` first by running `npm run server:authors` and `npm run server:posts` from the `example/gateway-server` directory (in two different terminal windows). Once the schemas have been successfully pushed to Apollo Studio, you can kill these processes.
