@@ -29,17 +29,21 @@ export const typeDefs = gql`
 `;
 ```
 
-To make the federated data graph's types available to the subscription service, instantiate an `ApolloGateway` and call the `makeSubscriptionSchema` function in the gateway's `onSchemaChange` method to combine its schema with the subscription service's type definitions and resolvers to make the complete executable schema.
+To make the federated data graph's types available to the subscription service, instantiate an `ApolloGateway` and call the `makeSubscriptionSchema` function in the gateway's `onSchemaLoadOrUpdate` method to combine its schema with the subscription service's type definitions and resolvers to make the complete executable schema.
 
 **Managed federation option:**
 
 ```js
 // index.js (subscriptions service)
-
+let schema;
 const gateway = new ApolloGateway();
 
-gateway.onSchemaChange(gatewaySchema => {
-  schema = makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers });
+gateway.onSchemaLoadOrUpdate(schemaContext => {
+  schema = makeSubscriptionSchema({
+    gatewaySchema: schemaContext.apiSchema,
+    typeDefs,
+    resolvers
+  });
 });
 
 await gateway.load({ apollo: getGatewayApolloConfig(apolloKey, graphVariant) });
@@ -49,7 +53,7 @@ await gateway.load({ apollo: getGatewayApolloConfig(apolloKey, graphVariant) });
 
 ```js
 // index.js (subscriptions service)
-
+let schema;
 const gateway = new ApolloGateway({
   serviceList: [
     /* Provide your service list here... */
@@ -57,8 +61,12 @@ const gateway = new ApolloGateway({
   experimental_pollInterval = 36000;
 });
 
-gateway.onSchemaChange(gatewaySchema => {
-  schema = makeSubscriptionSchema({ gatewaySchema, typeDefs, resolvers });
+gateway.onSchemaLoadOrUpdate(schemaContext => {
+  schema = makeSubscriptionSchema({
+    gatewaySchema: schemaContext.apiSchema,
+    typeDefs,
+    resolvers
+  });
 });
 
 await gateway.load();
@@ -230,22 +238,22 @@ httpServer.listen({ port }, () => {
 
 ### Installation & Set-up
 
-The full example code can be found in the `example` directory. To run the example, you'll need to create a new graph in Apollo Studio for the gateway and then push the two services' schemas:
+The full example code can be found in the `example` directory. To run the example, you'll need to create a new graph in Apollo Studio for the gateway, [configure rover](https://www.apollographql.com/docs/rover/configuring) with your `APOLLO_KEY`, and then push the two services' schemas:
 
 ```sh
-apollo service:push --key=YOUR_APOLLO_KEY_HERE --serviceName=authors --serviceURL=http://localhost:4001 --variant=current --endpoint=http://localhost:4001
+rover graph introspect http://localhost:4001 | rover subgraph publish authors@current --schema -
 ```
 
 ```sh
-apollo service:push --key=YOUR_APOLLO_KEY_HERE --serviceName=posts --serviceURL=http://localhost:4002 --variant=current --endpoint=http://localhost:4002
+rover graph introspect http://localhost:4002 | rover subgraph publish posts@current --schema -
 ```
 
 **Important!** The services for the authors and posts subgraphs will need to be running to fetch their schemas from the specified endpoints. You can quickly start up these services without the overhead of running a full `docker-compose` first by running `npm run server:authors` and `npm run server:posts` from the `example/gateway-server` directory (in two different terminal windows). Once the schemas have been successfully pushed to Apollo Studio, you can kill these processes.
 
 Next, add `.env` files to the server and client directories:
 
-1. Add a `.env` file to the `example/gateway-server` directory using the `example/gateway-server/.env.sample` file as a template. Add your new `APOLLO_KEY`.
-2. Add a `.env` file to the `example/subscriptions-server` directory using the `example/subscriptions-server/.env.sample` file as a template. Add the same Apollo API key as the `APOLLO_KEY`.
+1. Add a `.env` file to the `example/gateway-server` directory using the `example/gateway-server/.env.sample` file as a template. Add your new `APOLLO_KEY` and `APOLLO_GRAPH_REF` as variables.
+2. Add a `.env` file to the `example/subscriptions-server` directory using the `example/subscriptions-server/.env.sample` file as a template. Add the same Apollo API key as the `APOLLO_KEY` and `APOLLO_GRAPH_REF`.
 3. Add a `.env` file to the `example/client` directory using the `example/client/.env.sample` file as a template.
 
 Finally, run `docker-compose up --build` from the `example` directory to start all services.
