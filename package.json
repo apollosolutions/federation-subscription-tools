@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "A set of demonstration utilities to facilitate GraphQL subscription usage alongside a federated data graph.",
   "main": "dist/index.js",
-  "types": "dist/types.d.ts",
+  "types": "dist/index.d.ts",
   "keywords": [],
   "author": "",
   "license": "ISC",
