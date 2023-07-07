@@ -1,5 +1,7 @@
 # Using Subscriptions with a Federated Data Graph
 
+## Update June 2023: [Federated subscriptions are now supported in GraphOS](https://www.apollographql.com/blog/announcement/backend/federated-subscriptions-in-graphos-real-time-data-at-scale/)! You can now use subscriptions in your supergraph without these sidecar solutions.
+
 This demonstration library shows how a decoupled subscription service can run alongside a federated data graph to provide real-time updates to a client. While the subscription service runs a separate non-federated Apollo Server, client applications do not need to perform any special handling of their subscription operations and may send those requests as they would to any GraphQL API that supports subscriptions. The subscription service's API may also specify return types for the `Subscription` fields that are defined in the federated data graph without explicitly redefining them in that service's type definitions.
 
 **In brief, the utilities contained within this library will allow you to:**
